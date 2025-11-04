@@ -32,13 +32,14 @@ timerLabel.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 timerLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 timerLabel.Parent = ScreenGui
 
--- Добавим TextBox для ввода времени
+-- TextBox для ввода времени
 local timeInputBox = Instance.new("TextBox")
 timeInputBox.Size = UDim2.new(0, 100, 0, 30)
-timeInputBox.Position = UDim2.new(0, 10, 0, 250)
-timeInputBox.PlaceholderText = "Время, сек"
+timeInputBox.Position = UDim2.new(0, 270, 0, 210)
+timeInputBox.PlaceholderText = "Время (с)"
 timeInputBox.Text = tostring(killIntervalSeconds)
 timeInputBox.Parent = ScreenGui
+timeInputBox.ClearTextOnFocus = false
 
 local function updateGUI()
     local text = "Убитых: " .. tostring(killedCount) .. "\n"
@@ -91,12 +92,13 @@ end)
 -- Обработка ввода времени
 timeInputBox.FocusLost:Connect(function(enterPressed)
     if not autoKill then
-        local newTime = tonumber(timeInputBox.Text)
-        if newTime and newTime > 0 then
-            killIntervalSeconds = newTime
+        local inputText = timeInputBox.Text
+        local num = tonumber(inputText)
+        if num and num > 0 then
+            killIntervalSeconds = num
             timerLabel.Text = "Следующий цикл через: " .. tostring(killIntervalSeconds) .. " сек"
         else
-            -- Восстановим старое значение, если ввод некорректен
+            -- Восстановить старое значение, если ввод некорректен
             timeInputBox.Text = tostring(killIntervalSeconds)
         end
     end
@@ -148,5 +150,17 @@ while true do
         end
         -- Обновляем отображение таймера
         timerLabel.Text = "Следующий цикл через: " .. tostring(timeLeft) .. " сек"
+    end
+
+    -- Обновление доступности TextBox
+    if autoKill then
+        timeInputBox.BackgroundColor3 = Color3.fromRGB(150, 150, 150)
+        timeInputBox.Active = false
+        timeInputBox.TextColor3 = Color3.fromRGB(100, 100, 100)
+        timeInputBox.FocusLost:Connect(function() end) -- игнорируем изменение
+    else
+        timeInputBox.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        timeInputBox.Active = true
+        timeInputBox.TextColor3 = Color3.fromRGB(0, 0, 0)
     end
 end
