@@ -22,7 +22,6 @@ infoLabel.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 infoLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 infoLabel.Parent = ScreenGui
 
--- Таймер обратного отсчета
 local timerLabel = Instance.new("TextLabel")
 timerLabel.Size = UDim2.new(0, 250, 0, 30)
 timerLabel.Position = UDim2.new(0, 10, 0, 210)
@@ -33,55 +32,73 @@ timerLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 timerLabel.Parent = ScreenGui
 
 local function updateGUI()
-	local text = "Убитых: " .. tostring(killedCount) .. "\n"
-	for name, count in pairs(killedHumanoids) do
-		text = text .. name .. " x" .. count .. "\n"
-	end
-	infoLabel.Text = text
+    local text = "Убитых: " .. tostring(killedCount) .. "\n"
+    for name, count in pairs(killedHumanoids) do
+        text = text .. name .. " x" .. count .. "\n"
+    end
+    infoLabel.Text = text
 end
 
 toggleButton.MouseButton1Click:Connect(function()
-	autoKill = not autoKill
-	if autoKill then
-		toggleButton.Text = "Выкл"
-	else
-		toggleButton.Text = "Вкл"
-	end
+    autoKill = not autoKill
+    if autoKill then
+        toggleButton.Text = "Выкл"
+    else
+        toggleButton.Text = "Вкл"
+    end
 end)
 
 local timeLeft = killIntervalSeconds -- оставшееся время
 
+local function highlightNPC(npc)
+    local highlight = Instance.new("Highlight")
+    highlight.Adornee = npc
+    highlight.FillColor = Color3.new(1, 0, 0) -- красный цвет
+    highlight.OutlineColor = Color3.new(1, 0, 0)
+    highlight.Parent = npc
+    highlight.Enabled = true
+    -- Удаляем подсветку через 2 секунды
+    delay(2, function()
+        if highlight then
+            highlight:Destroy()
+        end
+    end)
+end
+
 while true do
-	wait(1)
-	if autoKill then
-		-- Обновляем таймер
-		timeLeft = timeLeft - 1
-		if timeLeft < 0 then
-			timeLeft = killIntervalSeconds
-			-- Перед началом нового периода очищаем таблицу
-			killedHumanoids = {}
-			local killedThisCycle = false
+    wait(1)
+    if autoKill then
+        -- Обновляем таймер
+        timeLeft = timeLeft - 1
+        if timeLeft < 0 then
+            timeLeft = killIntervalSeconds
+            -- Перед началом нового периода очищаем таблицу
+            killedHumanoids = {}
+            local killedThisCycle = false
 
-			-- Обходим все объекты в workspace
-			for _, npc in pairs(workspace:GetChildren()) do
-				local humanoid = npc:FindFirstChildOfClass("Humanoid")
-				if humanoid and humanoid.Health > 0 and npc ~= game.Players.LocalPlayer.Character then
-					-- Убиваем NPC
-					humanoid.Health = 0
-					local name = npc.Name
-					-- Подсчет убитых по имени Humanoid
-					killedHumanoids[name] = (killedHumanoids[name] or 0) + 1
-					killedCount = killedCount + 1
-					print("Убит: " .. name)
-					killedThisCycle = true
-				end
-			end
+            -- Обходим все объекты в workspace
+            for _, npc in pairs(workspace:GetChildren()) do
+                local humanoid = npc:FindFirstChildOfClass("Humanoid")
+                if humanoid and humanoid.Health > 0 and npc ~= game.Players.LocalPlayer.Character then
+                    -- Визуально подсвечиваем NPC перед убийством
+                    highlightNPC(npc)
 
-			if killedThisCycle then
-				updateGUI()
-			end
-		end
-		-- Обновляем отображение таймера
-		timerLabel.Text = "Следующий цикл через: " .. tostring(timeLeft) .. " сек"
-	end
+                    -- Убиваем NPC
+                    humanoid.Health = 0
+                    local name = npc.Name
+                    -- Подсчет убитых по имени Humanoid
+                    killedHumanoids[name] = (killedHumanoids[name] or 0) + 1
+                    killedCount = killedCount + 1
+                    print("Убит: " .. name)
+                    killedThisCycle = true
+                end
+            end
+
+            if killedThisCycle then
+                updateGUI()
+            end
+        end
+        -- Обновляем отображение таймера
+        timerLabel.Text = "Следующий цикл через: " .. tostring(timeLeft) .. " сек"
+    end
 end
