@@ -2,6 +2,7 @@ local autoKill = false
 local killIntervalSeconds = 5
 local killedCount = 0
 local killedHumanoids = {} -- таблица для текущего периода: имя Humanoid -> количество
+local highlightedNPCs = {} -- для хранения подсвеченных NPC
 
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Parent = game:GetService("CoreGui")
@@ -39,31 +40,46 @@ local function updateGUI()
     infoLabel.Text = text
 end
 
+local function addHighlight(npc)
+    local highlight = Instance.new("Highlight")
+    highlight.Name = "AutoKillHighlight"
+    highlight.Adornee = npc
+    highlight.FillColor = Color3.fromRGB(255, 0, 0)
+    highlight.FillTransparency = 0.5
+    highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+    highlight.OutlineTransparency = 0
+    highlight.Parent = npc
+    table.insert(highlightedNPCs, npc)
+end
+
+local function removeHighlights()
+    for _, npc in pairs(workspace:GetChildren()) do
+        if npc:FindFirstChild("AutoKillHighlight") then
+            npc.AutoKillHighlight:Destroy()
+        end
+    end
+    highlightedNPCs = {}
+end
+
 toggleButton.MouseButton1Click:Connect(function()
     autoKill = not autoKill
     if autoKill then
         toggleButton.Text = "Выкл"
+        -- добавляем подсветку всем NPC
+        for _, npc in pairs(workspace:GetChildren()) do
+            local humanoid = npc:FindFirstChildOfClass("Humanoid")
+            if humanoid and humanoid.Health > 0 and npc ~= game.Players.LocalPlayer.Character then
+                addHighlight(npc)
+            end
+        end
     else
         toggleButton.Text = "Вкл"
+        -- убираем подсветку
+        removeHighlights()
     end
 end)
 
 local timeLeft = killIntervalSeconds -- оставшееся время
-
-local function highlightNPC(npc)
-    local highlight = Instance.new("Highlight")
-    highlight.Adornee = npc
-    highlight.FillColor = Color3.new(1, 0, 0) -- красный цвет
-    highlight.OutlineColor = Color3.new(1, 0, 0)
-    highlight.Parent = npc
-    highlight.Enabled = true
-    -- Удаляем подсветку через 2 секунды
-    delay(2, function()
-        if highlight then
-            highlight:Destroy()
-        end
-    end)
-end
 
 while true do
     wait(1)
@@ -76,14 +92,19 @@ while true do
             killedHumanoids = {}
             local killedThisCycle = false
 
-            -- Обходим все объекты в workspace
+            -- Убираем старые подсветки и добавляем новые
+            removeHighlights()
             for _, npc in pairs(workspace:GetChildren()) do
                 local humanoid = npc:FindFirstChildOfClass("Humanoid")
                 if humanoid and humanoid.Health > 0 and npc ~= game.Players.LocalPlayer.Character then
-                    -- Визуально подсвечиваем NPC перед убийством
-                    highlightNPC(npc)
+                    addHighlight(npc)
+                end
+            end
 
-                    -- Убиваем NPC
+            -- Убиваем NPC
+            for _, npc in pairs(workspace:GetChildren()) do
+                local humanoid = npc:FindFirstChildOfClass("Humanoid")
+                if humanoid and humanoid.Health > 0 and npc ~= game.Players.LocalPlayer.Character then
                     humanoid.Health = 0
                     local name = npc.Name
                     -- Подсчет убитых по имени Humanoid
